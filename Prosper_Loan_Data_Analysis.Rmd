@@ -1,0 +1,743 @@
+# Project
+
+### Author: Qi Meng 
+
+
+Last modified date: 2018-03-01
+
+
+========================================================
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library('dplyr')
+library(ggplot2)
+library(tidyr)
+library('reshape2')
+library(scales)
+library(MASS)
+library(scales)
+library(memisc)
+library(lattice)
+library(RColorBrewer)
+library(ggplot2)
+```
+
+
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+
+pr <- read.csv('~/prosperLoanData.csv')
+
+```
+
+
+### Loan Data from Prosper
+
+This data set contains 113,937 loans with 81 variables on each loan,
+including loan amount, borrower rate (or interest rate), 
+current loan status, borrower income, borrower employment status,
+borrower credit history, and the latest payment information.
+
+
+
+The diamention of Proserper Loan Dataset
+
+
+```{r}
+
+dim(pr)
+```
+
+
+In total there are 81 variables that corresponding to each loan 
+In order better understand the dataset, in this analysis,
+19 variables will be selected.
+
+
+
+```{r}
+
+pr <- subset(pr, select = c('LoanStatus',
+                                'BorrowerAPR',
+                                'BorrowerRate',
+                                'LenderYield',
+                                'ProsperScore',
+                                'BorrowerState',
+                                'Occupation',
+                                'EmploymentStatus',
+                                'IsBorrowerHomeowner',
+                                'TotalCreditLinespast7years',
+                                'TotalInquiries',
+                                'BankcardUtilization',
+                                'AvailableBankcardCredit',
+                                'IncomeRange',
+                                'IncomeVerifiable',
+                                'LoanOriginalAmount',
+                                'LoanOriginationDate',
+                                'MonthlyLoanPayment',
+                                'Investors'
+))
+```
+
+
+
+
+```{r}
+str(pr)
+```
+
+
+
+
+# Univariate Plots Section
+
+
+
+Prosper Score measures the loan applicant's risk level, 
+the higer the score the lower the risk to lend.
+
+
+```{r}
+summary(pr$ProsperScore)
+```
+
+```{r}
+table(pr$ProsperScore)
+```
+
+
+The Highest score is 11 and the score distribution would be 
+better presented by the following chart.
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+
+ggplot(aes(ProsperScore), data = pr) +
+  scale_x_continuous(breaks = seq(1, 11, 1) ) +
+  geom_histogram(stat = 'count', binwidth = 1, fill = '#099DD9')  +
+    ggtitle(" ProsperScore Histogram ")
+
+
+```
+
+
+From the histogram, the majority of the ProserScore are 4, 6, and 8
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes(LoanStatus), data = pr) +
+    geom_histogram(stat = 'count', fill = '#099DD9')    + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+    ggtitle(" Loan Status Histogram ")
+
+```
+
+Most of the loan are current and the second is the completed loans
+
+
+
+
+```{r}
+summary(pr$LoanStatus)
+```
+
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+range_list <- c('$0','$1-24,999','$25,000-49,999','$50,000-74,999',
+                '$75,000-99,999',
+                '$100,000+','Not employed','Not displayed')
+pr$income_range <- factor(pr$IncomeRange,levels = range_list)
+
+```
+
+
+
+Creating a new variabel income_range to better format the IncomeRange variable
+
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+ggplot(aes(pr$EmploymentStatus), data = pr) +
+    geom_histogram(stat = 'count', fill = '#099DD9')    + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ggtitle(" EmploymentStatus Histogram ")
+
+
+```
+
+
+
+The loan data mostly coming from people who works employed or full time.
+
+
+
+```{r}
+summary(pr$EmploymentStatus)
+```
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes(pr$income_range), data = pr) +
+    geom_histogram(stat = 'count', fill = '#099DD9')    + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ggtitle(" Income Range Histogram ")
+
+```
+
+
+People whose income is between $25,000 and $100,000 applied for the loans.
+
+
+
+```{r}
+summary(pr$income_range)
+```
+
+
+
+
+```{r echo= FALSE, warning= FALSE, message=FALSE}
+
+
+pr$available_bank_credit_bracket <- cut(pr$AvailableBankcardCredit/1000,
+                                        breaks = seq(0, 15, by = 2))
+ggplot(aes(available_bank_credit_bracket), 
+       data = subset(pr, !is.na(available_bank_credit_bracket)) ) +
+    geom_histogram(stat = 'count', fill = '#099DD9') +
+    scale_size_area() + 
+    labs(size= "Nitrogen",
+         x = "Available_bank_credit_bracket(Thousands)",
+         y = "Count",
+         title = "Available_bank_credit_bracket histogram plot")
+
+
+
+```
+
+
+Based on the available bank credit breakdown, most of the borrowers
+have the credit less than 6,000.
+
+
+
+```{r}
+summary(pr$available_bank_credit_bracket)
+```
+
+Summary of available_bank_credit_bracket
+
+
+
+
+```{r echo= FALSE, warning= FALSE, message=FALSE}
+
+
+# Add borrower_rate_bracket breakdown
+
+pr$borrower_rate_bracket <- cut(pr$BorrowerRate * 100,
+                             breaks = seq(0,40,5))
+
+
+ggplot(aes(borrower_rate_bracket), 
+       data = subset(pr, !is.na(borrower_rate_bracket)) ) +
+    geom_histogram(stat = 'count', fill = '#099DD9') +
+    scale_size_area() + 
+    labs(size= "Nitrogen",
+         x = "Borrower_Rate (%)",
+         y = "Count",
+         title = "Borrower_Rate histogram plot")
+
+
+
+```
+
+Borrowers' interest rates are between 0 tp 35%.
+
+
+
+
+```{r}
+summary(pr$AvailableBankcardCredit)
+```
+
+
+Summary of AvailableBankcardCredit
+
+
+
+```{r}
+summary(pr$available_bank_credit_bracket)
+```
+
+
+Summary of available_bank_credit_bracket
+
+
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+
+The ProsperLoan data have 113937 overvations and 19 variables
+ProsperSocre: A custom risk score built using historical Prosper data.
+The score ranges from 1-10, with 10 being the best, or lowest risk score.  
+Applicable for loans originated after July 2009.
+Loanstatus: Completed, Current, Past Due (1-15 days), Defaulted, Chargedoff,
+            Past Due (16-30 days), Cancelled, Past Due (61-90 days), 
+            Past Due (31-60 days), Past Due (91-120 days)
+
+EmploymentStatus:Self-employed, Employed, Not available, Full-time,
+                Other, Not employed, Part-time, Retired     
+
+IncomeRange: $0, $1-24,999, $25,000-49,999, $50,000-74,999, $75,000-99,999,
+            $100,000+, Not employed, Not displayed
+
+
+
+### What is/are the main feature(s) of interest in your dataset?
+The main feature is the ProsperSocre, which measue the risk ability of the loan itself, verus the BorrowerRate
+
+
+
+
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+The loan applicants' occupation,income, bankcard utilization, 
+available bank card credit and other variables
+might impact the rick score when valued by th Prosper Company
+
+
+
+### Did you create any new variables from existing variables in the dataset?
+Yes, I created the new variable range_new to reorder
+the income range variable in a ascending order.
+
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy,
+adjust, or change the form \
+of the data? If so, why did you do this?
+
+Yes. I did select 19 variables out of 81 in total. 
+The reason for this is that not all the 
+variables are revelent in determining the Prosper Score.
+
+
+
+
+
+
+# Bivariate Plots Section
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+ggplot(aes(income_range, ProsperScore ), 
+       data = subset(pr, !is.na(ProsperScore))) +
+  geom_jitter(alpha = .05, shape = 21, colour = '#F79420') +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))  +
+    ggtitle(" Income Range and ProsperScore Bivariate Plot ")
+
+```
+
+For applicants with lower income, the Prosper Score seems lower than 6, 
+and for people with higher income, 
+the ProsperScore seems higher, which means less risk.
+
+
+```{r}
+
+tapply( pr$ProsperScore, pr$income_range,summary)
+```
+
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes(income_range, ProsperScore ), data = subset(pr, !is.na(ProsperScore))) +
+  geom_boxplot()+
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))  +
+    ggtitle(" ProsperScore and Income Range Box Plot ")
+
+
+```
+
+From the box plot we can see it more clearly, the median of people of 
+income greater than $50,000 is much higher 
+than people with income less than $50,000
+
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+ggplot(aes(EmploymentStatus, ProsperScore ), data = subset(pr, !is.na(ProsperScore))) +
+  geom_jitter(alpha = .05, shape = 21, colour = '#F79420') +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))  +
+    ggtitle(" ProsperScore and Employment Status Scatter Plot ")
+
+
+```
+
+
+If we compare ProsperScore with employment status, clearly, 
+full time employees will have greater ProperScore, and therefore, 
+less risky to lend money to them
+
+
+
+```{r}
+tapply( pr$ProsperScore, pr$EmploymentStatus,summary)
+```
+
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+ggplot(aes(EmploymentStatus, ProsperScore ),
+       data = subset(pr, !is.na(ProsperScore))) +
+    geom_raster( aes(fill = income_range)) + 
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))  +
+    ggtitle(" ProsperScore and Employment Status Heat Map ")
+
+
+```
+
+
+It is clearer to see from the heat map that employed and full time workers who
+have above average income will have higher Prosper Score. 
+Meanwhile, for some self employed applicants, even though the income range is 
+above $100,000, the Prosper Score is extremely low, indicting higher risk than
+other applicants with considerably lower income.
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+ggplot(aes( ProsperScore, BorrowerRate * 100 ), 
+       data = subset(pr, !is.na(ProsperScore))) +
+  geom_jitter(alpha = .05, shape = 21, colour = '#F79420') +
+  stat_smooth(method = 'lm') +
+    ggtitle(" Borrower Rate and Prosper Score Bivariate Plot ")
+
+```
+
+
+Unsperisingly, applicants with higher prosperscore seem to have lower 
+borrow rate.
+
+
+
+Summary for Prosper Score and Borrower Rate(%)
+
+
+```{r}
+tapply(pr$BorrowerRate*100, pr$ProsperScore, summary)
+```
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+with(pr, cor.test(pr$ProsperScore, pr$BorrowerRate))
+```
+
+
+And also from the correlation, Prosper Score and Borrower Rate has a strong 
+negative correlation.
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+ggplot(aes( EmploymentStatus, BorrowerRate * 100 ), 
+       data = subset(pr, !is.na(ProsperScore))) +
+  geom_jitter(alpha = .05, shape = 21, colour = '#F79420') +
+  stat_smooth(method = 'lm') +
+    ggtitle(" Borrower Rate and Employment Status scatter Plot ")
+
+```
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes(pr$AvailableBankcardCredit/1000, pr$BorrowerRate*100 ), 
+  data = subset(pr, (!is.na(BorrowerRate)))) +
+    
+      geom_jitter(alpha =.5, shape = 21, colour = '#099DD9') +
+    
+      scale_x_continuous(limits = c(1, 150),breaks = seq(1, 150, 20) ) +
+      ylim(5,40) +
+      ggtitle(" Available Bank Credit and Borrower Rate Scatter Plot ")
+
+```
+
+
+Higer available bank card credit will also have lower borrow rate. 
+
+
+```{r}
+with(na.omit(pr), cor(BorrowerRate*100,AvailableBankcardCredit/1000))
+
+```
+
+
+Correlation between BorrowerRate and AvailableBankcardCredit
+
+
+
+# Bivariate Analysis
+
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+
+Other than main feature, I also noticed applicants with 
+higher available bank card credit will also have lower borrow rate. 
+
+
+
+### What was the strongest relationship you found?
+
+Borrow rate verus the properscore, The coefficient between them is -0.6682872.
+
+
+
+
+
+# Multivariate Plots Section
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+
+ggplot(aes( BorrowerRate,ProsperScore), 
+       data = subset(pr, !is.na(ProsperScore)) ) +
+  geom_jitter(alpha = .05, shape = 21, colour = '#F79420') +
+  facet_wrap(~income_range) +
+    ggtitle(" Prosper Score and Borrower Rate Scatter Plot ")
+
+
+
+
+```
+
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes(BorrowerRate,ProsperScore ),
+       data = subset(pr, !is.na(ProsperScore))) +
+  geom_jitter(alpha = .05, shape = 21, colour = '#099DD9') +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap(~EmploymentStatus)+
+    ggtitle(" Prosper Score and Borrower Rate Scatter Plot ")
+
+
+```
+
+
+The same pattern also occur for different employment status
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes( ProsperScore,BorrowerRate* 100, colour = income_range), data = pr) + 
+  geom_point(alpha = .5, size = .5, position = 'jitter') +
+  scale_color_brewer(type =  'div',
+                     guide = guide_legend(title = 'income_range', 
+                                          reverse = FALSE, 
+                                          override.aes = list(alpha = 1,
+                                                              size = 2))) +
+  scale_y_continuous(limits = c(quantile(pr$BorrowerRate * 100, .05),
+                                quantile(pr$BorrowerRate * 100, .90)))+
+    ggtitle(" Prosper Score and Borrower Rate Scatter Plot ")
+
+
+
+```
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes( ProsperScore,borrower_rate_bracket,
+            colour = income_range),
+       data = subset(pr, 
+                     (!is.na(borrower_rate_bracket)) & 
+                         (borrower_rate_bracket != '(35,40]'))) +
+    geom_raster( aes(fill = income_range), interpolate = TRUE) +
+    ggtitle(" Prosper Score and Borrower Rate Heat Map ")
+    
+```
+
+
+When comparing with the main relationship ProsperScore and BorrowerRate, 
+we also noticed a liner relationship adding the category 
+variable income range
+
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+ggplot(aes(BorrowerRate*100, ProsperScore, colour = EmploymentStatus), 
+       data = pr) + 
+  geom_point(alpha = .5, size = .75, position = 'jitter') +
+  scale_color_brewer(type =  'div', 
+                     guide = guide_legend(title = 'EmploymentStatus', 
+                                          reverse = FALSE, 
+                                          override.aes = list(alpha = 1,
+                                                              size = 2))) +
+  scale_x_continuous(limits = c(quantile(pr$BorrowerRate* 100, .05),
+                                quantile(pr$BorrowerRate*100, .90))) +
+    ggtitle(" Prosper Score and Borrower Rate Scatter Plot ")
+
+  
+```
+
+
+```{r echo=FALSE ,warning=FALSE, message=FALSE}
+
+m1 <- lm(I(BorrowerRate) ~ 0 + I(ProsperScore), 
+         data = subset(pr, !is.na(ProsperScore)))
+m2 <- update(m1, ~ . + AvailableBankcardCredit)
+m3 <- update(m2, ~ . + IncomeRange)
+m4 <- update(m3, ~ . + EmploymentStatus)
+m5 <- update(m4, ~ . + TotalCreditLinespast7years)
+
+mtable(m1, m2, m3, m4, m5)
+
+```
+
+
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+From multivariate analysis, the borrower's rate is also affacted by
+other variables such as income range, employment status, 
+aviable bank credits.
+
+
+
+### Were there any interesting or surprising interactions between features?
+
+Holding the borrower's rate constant,
+the employed status will have lower prosper score.
+
+
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the \
+strengths and limitations of your model.
+
+
+Yes, I did. For the linear models I created, R square is about 93%,
+which means almost 93% percent of the variation can be 
+explained by the model. I also excluded the intercept,
+which strenthed the linear relationship between the variables. 
+
+
+
+
+------
+
+# Final Plots and Summary
+
+
+### Plot One
+```{r echo=FALSE, warning= FALSE,Plot_One}
+
+
+ggplot(aes(ProsperScore), data = pr) +
+  scale_x_continuous(breaks = seq(1, 11, 1) ) +
+  geom_histogram(stat = 'count', binwidth = 1,fill = '#099DD9')  +
+    ggtitle(" ProsperScore Histogram ")
+
+```
+
+### Description One
+
+The loans were valued by the risk levels which bing called as ProsperScore,
+and the greater the score the lower the risk.
+Histogram showed us the counts for different ProsperScore.
+Majority of the loans have the score between 4 and 9. 
+
+
+### Plot Two
+
+```{r echo=FALSE, warning= FALSE, Plot_Two}
+ggplot(aes( ProsperScore, BorrowerRate * 100 ),
+       data = subset(pr, !is.na(ProsperScore))) +
+  geom_jitter(alpha = .05, shape = 21, colour = '#099DD9') +
+  stat_smooth(method = 'lm') +
+  scale_x_continuous(breaks = seq(0, 10, 1))+
+    ggtitle(" Prosper Score and Borrower Rate Scatter Plot ")
+```
+
+
+### Description Two
+
+Ggplot gives us the negative correlation between ProsperScore and 
+the borrower's rate, the higher the score seems to 
+lead to a lower borrower's rate.
+
+
+
+
+### Plot Three
+
+```{r echo=FALSE, warning= FALSE, Plot_Three}
+
+ggplot(aes( ProsperScore,BorrowerRate* 100, colour = income_range), data = pr) + 
+  geom_point(alpha = .5, size = .5, position = 'jitter') +
+  scale_color_brewer(type =  'div',
+                     guide = guide_legend(title = 'income_range', 
+                     reverse = FALSE, 
+                     override.aes = list(alpha = 1, size = 2))) +
+  scale_y_continuous(limits = c(quantile(pr$BorrowerRate * 100, .05),
+                                quantile(pr$BorrowerRate * 100, .90))) +
+    ggtitle(" Prosper Score and Borrower Rate Scatter Plot ")
+
+```
+
+### Description Three
+
+When considering other variables, for example, 
+income range, will also help us in predicting the borrower's rate.From the plot, 
+the higer income leads also have higer ProsperScore,
+and revelvantly lower interest rate.
+
+
+------
+
+
+# Reflection
+
+Prosper Loan dataset has thorogh loan data regrading theri unique attributes, 
+and when evaluating the loan applications, these 
+variables could benefit the company in deciding the accurate rate.
+From the the analysis, it is shown that borrower's rate the highly 
+correlated with borrower's ProsperScore, which measured the risk
+of the applicant. 
+We also learned that other factors such as income level,
+employment status, avaible bank credits could also affect borrower's rate.
+More thorough demographic data can be included in the dataset, therefore,
+we can better the detailed attributs of the applicants.
+
+
+
